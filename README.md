@@ -1,6 +1,6 @@
-# Template p5 Project
+# !Grid Match!
 
-Author Name
+Sean Verba
 
 [View this project online](URL_FOR_THE_RUNNING_PROJECT)
 
@@ -13,6 +13,8 @@ This description should help the reader understand what the program is, what any
 This bit should describe what tools were used. For example:
 
 This project uses [p5.js](https://p5js.org).
+
+Line of code to stop the context menu from popping up on canvas taken from user "Zuul" from this post: https://stackoverflow.com/questions/10864249/how-to-disable-the-right-click-context-menu-on-an-html-canvas
 
 ## Attribution
 
