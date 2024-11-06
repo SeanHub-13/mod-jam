@@ -38,7 +38,7 @@ let playButton = {
 
 // Array later made into a 2d array to represent cells in the grid
 let gridArray = [];
-let gridCompare = [];
+let gridCompare = null;
 
 // State variable, currently set to titlescreen on launch
 let state = "titlescreen";
@@ -51,6 +51,8 @@ let timer = 0;
 let selectedEasy = null;
 
 let stateLevel = "one";
+
+let score = 0;
 
 function preload() {
     buttonImage = loadImage('assets/images/Mod_Jam_Button_1.png');
@@ -168,16 +170,28 @@ function timerUpdate() {
 
 function nextStage() {
     if (timer <= 0) {
+        // If the state of the level is level one display
         if (stateLevel === "one") {
+            if (gridCompare != null) {
+                cellCompare();
+            }
+            console.log(score);
+            // Set the timer to 10
             timer = 10;
+            // Set the editing boolean to false
             editState = false;
+            // Choose how many cells to fill
             selectedEasy = Math.floor(random(5, 15));
+            // Reset the grid, create a pattern on gridArray, copy it onto gridCompare
             levelOne();
+            // Change the state of the level to one draw
             stateLevel = "onedraw";
         }
+        // If the state of the level is level one draw
         else if (stateLevel === "onedraw") {
-            editState = true;
             gridReset();
+
+            editState = true;
             timer = 10;
             stateLevel = "one";
         }
@@ -190,8 +204,10 @@ function levelOne() {
         let randomColumn = Math.floor(random(0, grid.columns - 1));
         let randomRow = Math.floor(random(0, grid.rows - 1));
         gridArray[randomColumn][randomRow] = true;
-        gridCompare = gridArray;
     }
+    // GridCompare is equal to gridArrays rows
+    // Had to do this because it makes gridCompare a copy of the array instead of making it constantly refer to gridArray, meaning it would always match
+    gridCompare = gridArray.map(row => row.slice());
 }
 
 function gridReset() {
@@ -208,7 +224,18 @@ function gridReset() {
 }
 
 function cellCompare() {
-
+    for (let i = 0; i < grid.columns; i++) {
+        for (let j = 0; j < grid.rows; j++) {
+            if (gridArray[i][j] === true && gridCompare[i][j] === true) {
+                console.log("true");
+                score++;
+            }
+            else if (gridArray[i][j] === true && gridCompare[i][j] !== true) {
+                console.log("false");
+                score--;
+            }
+        }
+    }
 }
 
 function stateChange() {
