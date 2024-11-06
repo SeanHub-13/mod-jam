@@ -11,6 +11,7 @@
 
 let buttonImage = undefined;
 let buttonPressedImage = undefined;
+let font = undefined;
 
 const grid = {
     columns: 8,
@@ -33,7 +34,12 @@ const grid = {
 
 let playButton = {
     width: 192,
-    height: 72
+    height: 72,
+    fill: {
+        r: 0,
+        g: 0,
+        b: 0
+    }
 }
 
 // Array later made into a 2d array to represent cells in the grid
@@ -54,14 +60,19 @@ let stateLevel = "one";
 
 let score = 0;
 
+let scoreRequired = 5;
+
 function preload() {
     buttonImage = loadImage('assets/images/Mod_Jam_Button_1.png');
     buttonPressedImage = loadImage('assets/images/Mod_Jam_Button_2.png');
+    font = loadFont('assets/fonts/PressStart2P-Regular.ttf');
 }
 
 // Setup runs code on start-up
 function setup() {
     createCanvas(800, 800);
+    textFont(font);
+    textAlign(CENTER, CENTER);
     grid.squareW = width / grid.columns / 2;
     grid.squareH = height / grid.rows / 2;
     gridReset();
@@ -130,21 +141,51 @@ function gridClickCheck() {
 function drawPlayButton() {
     // width & height is calculated like this because I want the button to be truly centered, and the image is 192 x 72
     image(buttonImage, width / 2 - playButton.width / 2, height / 2 - playButton.height / 2, playButton.width, playButton.height);
-    text("PLAY", width / 2, height / 2);
+    fill(playButton.fill.r, playButton.fill.g, playButton.fill.b);
     textSize(12);
+    text("PLAY", width / 2, height / 2);
 }
 
 function drawPressedPlayButton() {
     // width & height is calculated like this because I want the button to be truly centered, and the image is 192 x 72
     image(buttonPressedImage, width / 2 - playButton.width / 2, height / 2 - playButton.height / 2, playButton.width, playButton.height);
-    text("PLAY", width / 2, height / 2);
+    fill(playButton.fill.r, playButton.fill.g, playButton.fill.b);
     textSize(12);
+    text("PLAY", width / 2, height / 2);
+}
+
+function titleScreenText() {
+    textSize(48);
+    fill(255, 255, 255);
+    text("|          |", width / 2, height / 6);
+    text("|GRID MATCH|", width / 2, height / 4);
+    text("|__________|", width / 2, height / 3);
+}
+
+function titleExplanationText() {
+    textSize(18);
+    fill(255, 255, 255);
+    text("The game will quickly show you a pattern,\n match the pattern as close as possible \n before the timer runs out!\n\n Meet the required score to continue. \n\n  Left Click: Draw \n\n Right Click: Erase", width / 2, height / 2 + height / 5);
 }
 
 function timerDisplay() {
+    textSize(56);
+    let textShake = map(timer, 0, 10, 255, 0);
+    fill(textShake, 0, 0);
+    let shakeEffect = random(-1, 1);
+    text(timer, width / 2 - shakeEffect, height / 5);
+}
+
+function scoreDisplay() {
+    textSize(34);
     fill(255, 255, 255);
-    text(timer, width / 2, height / 5);
-    textSize(12);
+    text(" Score:\n" + score, width / 4, height / 8);
+}
+
+function requirmentDisplay() {
+    textSize(34);
+    fill(255, 255, 255);
+    text("Need:\n" + scoreRequired + " ", width / 2 + width / 4, height / 8);
 }
 
 function playButtonInput() {
@@ -155,12 +196,20 @@ function playButtonInput() {
         (mouseY < height / 2 + playButton.height / 2)) {
         //If mouse hovers over the button, draw the pressed version
         drawPressedPlayButton();
+        playButton.fill.r = 255;
+        playButton.fill.g = 255;
+        playButton.fill.b = 255;
         //Checks if the button is left clicked
         if (mouseIsPressed) {
             //Resets score
             //score = 0;
             state = "game";
         }
+    }
+    else {
+        playButton.fill.r = 0;
+        playButton.fill.g = 0;
+        playButton.fill.b = 0;
     }
 }
 
@@ -172,12 +221,20 @@ function nextStage() {
     if (timer <= 0) {
         // If the state of the level is level one display
         if (stateLevel === "one") {
+            console.log("Score Required: " + scoreRequired);
             if (gridCompare != null) {
                 cellCompare();
+                if (score < scoreRequired) {
+                    console.log("You Lost!!!")
+                }
+                else {
+                    scoreRequired = scoreRequired + 5;
+                    console.log("New Score Required: " + scoreRequired);
+                }
             }
             console.log(score);
             // Set the timer to 10
-            timer = 10;
+            timer = 5;
             // Set the editing boolean to false
             editState = false;
             // Choose how many cells to fill
@@ -232,7 +289,7 @@ function cellCompare() {
             }
             else if (gridArray[i][j] === true && gridCompare[i][j] !== true) {
                 console.log("false");
-                score--;
+                score = score - 2;
             }
         }
     }
@@ -253,15 +310,18 @@ function stateChange() {
 
 //Displays all title screen related functions
 function titleScreen() {
-    //titleScreenText1();
+    titleScreenText();
     //titleScreenText2();
     drawPlayButton();
     playButtonInput();
+    titleExplanationText();
 }
 
 function game() {
     drawGrid();
     gridClickCheck();
     timerDisplay();
+    scoreDisplay();
+    requirmentDisplay();
     nextStage();
 }
