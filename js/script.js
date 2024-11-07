@@ -14,8 +14,8 @@ let buttonPressedImage = undefined;
 let font = undefined;
 
 const grid = {
-    columns: 8,
-    rows: 8,
+    columns: 6,
+    rows: 6,
     squareW: null,
     squareH: null,
     offsetX: 200,
@@ -29,6 +29,49 @@ const grid = {
         r: 50,
         g: 225,
         b: 50
+    }
+}
+
+const leaderboardScores = {
+    leaderOne: {
+        name: null,
+        score: null
+    },
+    leaderTwo: {
+        name: null,
+        score: null
+    },
+    leaderThree: {
+        name: null,
+        score: null
+    },
+    leaderFour: {
+        name: null,
+        score: null
+    },
+    leaderFive: {
+        name: null,
+        score: null
+    },
+    leaderSix: {
+        name: null,
+        score: null
+    },
+    leaderSeven: {
+        name: null,
+        score: null
+    },
+    leaderEight: {
+        name: null,
+        score: null
+    },
+    leaderNine: {
+        name: null,
+        score: null
+    },
+    leaderTen: {
+        name: null,
+        score: null
     }
 }
 
@@ -53,6 +96,7 @@ let state = "titlescreen";
 let editState = false;
 
 let timer = 0;
+let timerOne = 20;
 
 let selectedEasy = null;
 
@@ -60,8 +104,15 @@ let stateLevel = "one";
 
 let score = 0;
 let oldScore = 0;
-
 let scoreRequired = 5;
+
+let shakeEffect = null;
+
+let wins = 0;
+
+let inputField = null;
+
+let inputDrawn = false;
 
 function preload() {
     buttonImage = loadImage('assets/images/Mod_Jam_Button_1.png');
@@ -74,8 +125,7 @@ function setup() {
     createCanvas(800, 800);
     textFont(font);
     textAlign(CENTER, CENTER);
-    grid.squareW = width / grid.columns / 2;
-    grid.squareH = height / grid.rows / 2;
+    calculateGridSize()
     gridReset();
     // Line of code taken from user Zuul on stack overflow - more info in README
     // From what I can understand, this adds an event handler to the canvas that is triggered on right click and stops the context menu from appearing
@@ -106,7 +156,7 @@ function drawGrid() {
                 fill(grid.fillFalse.r, grid.fillFalse.g, grid.fillFalse.b);
             }
             push();
-            stroke(0);
+            stroke(255, 150, 170);
             rect(x, y, grid.squareW, grid.squareH);
             pop();
         }
@@ -137,6 +187,11 @@ function gridClickCheck() {
             // drawGrid();
         }
     }
+}
+
+function calculateGridSize() {
+    grid.squareW = width / grid.columns / 2;
+    grid.squareH = height / grid.rows / 2;
 }
 
 function drawPlayButton() {
@@ -171,9 +226,18 @@ function titleExplanationText() {
 
 function timerDisplay() {
     textSize(56);
-    let textShake = map(timer, 0, 10, 255, 0);
-    fill(textShake, 0, 0);
-    let shakeEffect = random(-1, 1);
+    let textColor = map(timer, 0, 10, 255, 0);
+    fill(textColor, 0, 0);
+
+    if (timer > 10) {
+        shakeEffect = 0;
+    }
+    else if (timer > 5) {
+        shakeEffect = random(-2, 2);
+    }
+    else {
+        shakeEffect = random(-3, 3);
+    }
     text(timer, width / 2 - shakeEffect, height / 5);
 }
 
@@ -193,7 +257,7 @@ function leaderboardText() {
     textSize(32);
     fill(255, 255, 255);
     text("LEADERBOARD\n___________", width / 2, height / 8);
-    text("1:\n2:\n3:\n4:\n5:\n6:\n7:\n8:\n9:\n10:", width / 3, height / 2.2);
+    text("1:\n2:\n3:\n4:\n5:\n6:\n7:\n8:\n9:\n10: ", width / 3, height / 2.2);
 }
 
 function playButtonInput() {
@@ -225,6 +289,19 @@ function timerUpdate() {
     timer--;
 }
 
+function nameField() {
+    setTimeout(() => {
+        let nameAsk = prompt("Please enter your name:");
+    }, 1000); // Delay of 2000 milliseconds (2 seconds)
+}
+
+function triggerOnce() {
+    if (inputDrawn === true) {
+        nameField();
+        inputDrawn = false;
+    }
+}
+
 function nextStage() {
     if (timer <= 0) {
         // If the state of the level is level one display
@@ -234,10 +311,29 @@ function nextStage() {
                 cellCompare();
                 if (score < scoreRequired) {
                     console.log("You Lost!!!")
+                    inputDrawn = true;
                     state = "end";
                 }
                 else {
                     scoreRequired = scoreRequired + 5;
+                    if (timerOne > 4) {
+                        timerOne = timerOne - 2;
+                    }
+                    wins++;
+                    console.log("Wins: " + wins);
+                    if (wins === 3) {
+                        grid.columns = 8;
+                        grid.rows = 8;
+                    }
+                    else if (wins === 6) {
+                        grid.columns = 10;
+                        grid.rows = 10;
+                    }
+                    else if (wins === 9) {
+                        grid.columns = 12;
+                        grid.rows = 12;
+                    }
+                    calculateGridSize()
                     console.log("New Score Required: " + scoreRequired);
                 }
             }
@@ -248,7 +344,7 @@ function nextStage() {
             // Set the editing boolean to false
             editState = false;
             // Choose how many cells to fill
-            selectedEasy = Math.floor(random(5, 15));
+            selectedEasy = Math.floor(random(5, 20));
             // Reset the grid, create a pattern on gridArray, copy it onto gridCompare
             levelOne();
             // Change the state of the level to one draw
@@ -259,7 +355,7 @@ function nextStage() {
             gridReset();
 
             editState = true;
-            timer = 10;
+            timer = timerOne;
             stateLevel = "one";
         }
     }
@@ -356,4 +452,5 @@ function end() {
     playButtonInput();
     leaderboardText();
     cheatCheck();
+    triggerOnce()
 }
