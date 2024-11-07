@@ -2,17 +2,43 @@
  * !Grid Match!
  * Sean Verba
  * 
- * Small 8x8 grid, flashes a picture made on the grid to the player, then asks them to recreate it as best as they can draw it from memory.
+ * Controls:
+ * - Left click to draw
+ * - Right click to erase
+ * 
+ * Small 6 x 6 grid, flashes a pattern made on the grid to the player, then asks them to recreate it as best as they can draw it from memory.
  * Compares how well they did based on what grid tiles they drew on, then gives a score.
- * If the player gets a score above a certain amount each round, they continue, if not, trigger game over leaderboard and ask them for a name so that their score gets added
+ * If the player gets a score above a certain amount each round, they continue, if not, triggers game over and displays their score.
+ * When the player wins a round, decreases drawing time by 2 down to a minimum of 4.
+ * If the player wins 3 rounds (up to 12) increases grid columns and rows by 2.
+ * 
+ * Uses:
+ * 
+ * p5.js
+ * https://p5js.org
+ * 
+ * Firebase
+ * https://firebase.google.com/
+ * 
  */
 
 "use strict";
 
+// Next few variables are all undefined variables in preperation for the preload function
+let beepOne = undefined;
+let beepTwo = undefined;
+let beepThree = undefined;
+let beepFour = undefined;
+let beepFive = undefined;
+let cheater = undefined;
+let gameOver = undefined;
+let greatJob = undefined;
 let buttonImage = undefined;
 let buttonPressedImage = undefined;
 let font = undefined;
+let alarm = undefined;
 
+// Grid defining variables
 const grid = {
     columns: 6,
     rows: 6,
@@ -32,49 +58,16 @@ const grid = {
     }
 }
 
-const leaderboardScores = {
-    leaderOne: {
-        name: null,
-        score: null
-    },
-    leaderTwo: {
-        name: null,
-        score: null
-    },
-    leaderThree: {
-        name: null,
-        score: null
-    },
-    leaderFour: {
-        name: null,
-        score: null
-    },
-    leaderFive: {
-        name: null,
-        score: null
-    },
-    leaderSix: {
-        name: null,
-        score: null
-    },
-    leaderSeven: {
-        name: null,
-        score: null
-    },
-    leaderEight: {
-        name: null,
-        score: null
-    },
-    leaderNine: {
-        name: null,
-        score: null
-    },
-    leaderTen: {
-        name: null,
-        score: null
+// Background color variables
+const backgroundColor = {
+    fill: {
+        r: 255,
+        g: 150,
+        b: 170
     }
 }
 
+// Play button variables
 let playButton = {
     width: 192,
     height: 72,
@@ -87,6 +80,8 @@ let playButton = {
 
 // Array later made into a 2d array to represent cells in the grid
 let gridArray = [];
+
+// Later becomes a deep copy of gridArray
 let gridCompare = null;
 
 // State variable, currently set to titlescreen on launch
@@ -95,51 +90,111 @@ let state = "titlescreen";
 // Boolean variable sets whether the player can edit the grid
 let editState = false;
 
+// Timer variable
 let timer = 0;
-let timerOne = 20;
 
+// Timers starting time
+let timerOne = 16;
+
+// Later represents the selected amount of grid blocks to make green
 let selectedEasy = null;
 
+// State of the level
 let stateLevel = "one";
 
+// Score variable
 let score = 0;
+
+// Variable that becomes a deep copy of score later
 let oldScore = 0;
+
+// Score requirement
 let scoreRequired = 5;
 
+// Later becomes a shake effect value
 let shakeEffect = null;
 
+// Amount of wins
 let wins = 0;
 
-let inputField = null;
+// Later holds the picked beep sound
+let beepPick = null;
 
-let inputDrawn = false;
+/** ----------------------------------------------------------------------------------------------------------------------------- */
+/** ----------------------------------------------------------------------------------------------------------------------------- */
+/** ----------------------------------------------------------------------------------------------------------------------------- */
 
+/**
+ * Sounds were loading late the first time they were played, and I couldn't figure out why
+ * This workaround plays them at 0 volume upon pressing the play button to "warm them up"
+ */
+function warmUpSounds() {
+    // Playing sounds at 0 volume
+    beepOne.play(0, 1, 0, 0, 0.1);
+    beepTwo.play(0, 1, 0, 0, 0.1);
+    beepThree.play(0, 1, 0, 0, 0.1);
+    beepFour.play(0, 1, 0, 0, 0.1);
+    beepFive.play(0, 1, 0, 0, 0.1);
+    cheater.play(0, 1, 0, 0, 0.1);
+    gameOver.play(0, 1, 0, 0, 0.1);
+    greatJob.play(0, 1, 0, 0, 0.1);
+}
+
+/**
+ * A function that preloads all the assets used
+ */
 function preload() {
+    // Variables finding files
+    beepOne = loadSound('assets/sounds/beep1.mp3');
+    beepTwo = loadSound('assets/sounds/beep2.mp3');
+    beepThree = loadSound('assets/sounds/beep3.mp3');
+    beepFour = loadSound('assets/sounds/boop1.mp3');
+    beepFive = loadSound('assets/sounds/boop2.mp3');
+    cheater = loadSound('assets/sounds/CHEATER.mp3');
+    gameOver = loadSound('assets/sounds/gameover.mp3');
+    greatJob = loadSound('assets/sounds/greatjob.mp3');
+    alarm = loadSound('assets/sounds/alarm.wav');
     buttonImage = loadImage('assets/images/Mod_Jam_Button_1.png');
     buttonPressedImage = loadImage('assets/images/Mod_Jam_Button_2.png');
     font = loadFont('assets/fonts/PressStart2P-Regular.ttf');
 }
 
-// Setup runs code on start-up
+/**
+ * Setup runs code on start-up
+ */
 function setup() {
+    // Creates the canvas
     createCanvas(800, 800);
+    // Sets font
     textFont(font);
+    // Centers text alignment
     textAlign(CENTER, CENTER);
     calculateGridSize()
     gridReset();
     // Line of code taken from user Zuul on stack overflow - more info in README
     // From what I can understand, this adds an event handler to the canvas that is triggered on right click and stops the context menu from appearing
     canvas.oncontextmenu = function (e) { e.preventDefault(); e.stopPropagation(); }
+    // Sets an interval to trigger timer update
     setInterval(timerUpdate, 1000);
 }
 
-// Draw runs code every frame
+/**
+ * Draw runs code every frame
+ */
 function draw() {
-    background(255, 150, 170);
+    // Changes background color
+    background(backgroundColor.fill.r, backgroundColor.fill.g, backgroundColor.fill.b);
     gridClickCheck();
     stateChange();
 }
 
+/** ----------------------------------------------------------------------------------------------------------------------------- */
+/** ----------------------------------------------------------------------------------------------------------------------------- */
+/** ----------------------------------------------------------------------------------------------------------------------------- */
+
+/**
+ * Draws the grid
+ */
 function drawGrid() {
     // Let i equal 0, for every time i equals less than 8, add 1 to i
     for (let i = 0; i < grid.columns; i++) {
@@ -147,23 +202,125 @@ function drawGrid() {
             // Number of i (squares) * squares width + offset
             let x = i * grid.squareW + grid.offsetX;
             let y = j * grid.squareH + grid.offsetY;
-            // If a variable in one of the arrays is true, make its corresponding cell the "true" color
+            // If a variable in one of the arrays is true
             if (gridArray[i][j] === true) {
+                // Make its corresponding cell the "true" color
                 fill(grid.fillTrue.r, grid.fillTrue.g, grid.fillTrue.b);
             }
-            // If it is false, make its corresponding cell the "false" color
+            // If it is false
             else {
+                // Make its corresponding cell the "false" color
                 fill(grid.fillFalse.r, grid.fillFalse.g, grid.fillFalse.b);
             }
             push();
-            stroke(255, 150, 170);
+            stroke(backgroundColor.fill.r, backgroundColor.fill.g, backgroundColor.fill.b);
             rect(x, y, grid.squareW, grid.squareH);
             pop();
         }
     }
 }
 
-// Checks if and where the mouse clicked on the grid
+/**
+ * Draws the normal play button
+ */
+function drawPlayButton() {
+    image(buttonImage, width / 2 - playButton.width / 2, height / 1.2 - playButton.height / 2, playButton.width, playButton.height);
+    fill(playButton.fill.r, playButton.fill.g, playButton.fill.b);
+    textSize(12);
+    text("PLAY", width / 2, height / 1.2);
+}
+
+/**
+ * Draws the pressed play button
+ */
+function drawPressedPlayButton() {
+    image(buttonPressedImage, width / 2 - playButton.width / 2, height / 1.2 - playButton.height / 2, playButton.width, playButton.height);
+    fill(playButton.fill.r, playButton.fill.g, playButton.fill.b);
+    textSize(12);
+    text("PLAY", width / 2, height / 1.2);
+}
+
+/**
+ * Draws title screen text
+ */
+function titleScreenText() {
+    textSize(48);
+    fill(255, 255, 255);
+    text("|          |", width / 2, height / 6);
+    text("|GRID MATCH|", width / 2, height / 4);
+    text("|__________|", width / 2, height / 3);
+}
+
+/**
+ * Draws title screen explanation text
+ */
+function titleExplanationText() {
+    textSize(18);
+    fill(255, 255, 255);
+    text("The game will quickly show you a pattern,\n match the pattern as close as possible \n before the timer runs out!\n\n Meet the required score to continue. \n\n  Left Click: Draw \n\n Right Click: Erase", width / 2, height / 2.7 + height / 5);
+}
+
+/**
+ * Draws timer
+ */
+function drawTimer() {
+    textSize(56);
+    // Map the timer value to a red color
+    let textColor = map(timer, 0, 10, 255, 0);
+    fill(textColor, 0, 0);
+    // Control the shake effect based on the timer value
+    if (timer > 10) {
+        shakeEffect = 0;
+    }
+    else if (timer > 5) {
+        shakeEffect = random(-2, 2);
+    }
+    else {
+        shakeEffect = random(-3, 3);
+    }
+    text(timer, width / 2 - shakeEffect, height / 4);
+}
+
+/**
+ * Draws score
+ */
+function drawScore() {
+    textSize(34);
+    fill(255, 255, 255);
+    text(" Score:\n" + score, width / 4, height / 8);
+}
+
+/**
+ * Draws score requirement
+ */
+function drawRequirement() {
+    textSize(34);
+    fill(255, 255, 255);
+    text("Need:\n" + scoreRequired + " ", width / 2 + width / 4, height / 8);
+}
+
+/**
+ * Draws game over text and final score
+ */
+function gameOverText() {
+    textSize(32);
+    fill(255, 255, 255);
+    text("GAME OVER\n___________", width / 2, height / 8);
+    text("Final Score", width / 2, height / 4);
+    textSize(82);
+    // Maps the scores value to how yellow it becomes
+    let scoreColor = map(score, 0, 50, 0, 255);
+    fill(scoreColor, scoreColor, 0);
+    text(score, width / 2, height / 2);
+}
+
+/** ----------------------------------------------------------------------------------------------------------------------------- */
+/** ----------------------------------------------------------------------------------------------------------------------------- */
+/** ----------------------------------------------------------------------------------------------------------------------------- */
+
+/**
+ * Checks if and where the mouse clicked on the grid
+ */
 function gridClickCheck() {
     // If mouse is pressed
     if (mouseIsPressed) {
@@ -173,11 +330,35 @@ function gridClickCheck() {
         // If columnMouse (The column that the mouse is on) is more or equal to 0 AND columnMouse is less than the number of columns
         // Then, if mouse is greater than or equal to offset AND mouse is less than or equal to offset + number of columns * cell size - basically is the mouse less than or equal to the offset + the grid AND the player can edit
         if (columnMouse >= 0 && columnMouse < grid.columns && rowMouse >= 0 && rowMouse < grid.rows && mouseX >= grid.offsetX && mouseX <= grid.offsetX + grid.columns * grid.squareW && mouseY >= grid.offsetY && mouseY <= grid.offsetY + grid.rows * grid.squareH && editState === true) {
-            // console.log(columnMouse + 1, rowMouse + 1);
             // If mouse button that was pressed is left
             if (mouseButton === LEFT) {
-                // Sets the state of the clicked boolean to true
+                // Sets the state of the clicked cells boolean to true
                 gridArray[columnMouse][rowMouse] = true;
+                // Picks the beep sound randomely
+                beepPick = Math.floor(random(1, 10));
+                // If none of the sounds are playing, play the one picked
+                if (!beepOne.isPlaying() && !beepTwo.isPlaying() && !beepThree.isPlaying() && !beepFour.isPlaying() && !beepFive.isPlaying()) {
+                    if (beepPick === 1) {
+                        beepOne.setVolume(0.25);
+                        beepOne.play();
+                    }
+                    else if (beepPick === 2) {
+                        beepTwo.setVolume(0.25);
+                        beepTwo.play();
+                    }
+                    else if (beepPick === 3) {
+                        beepThree.setVolume(0.25);
+                        beepFour.play();
+                    }
+                    else if (beepPick === 4) {
+                        beepFour.setVolume(0.25);
+                        beepFour.play();
+                    }
+                    else if (beepPick === 5) {
+                        beepFive.setVolume(0.25);
+                        beepFive.play();
+                    }
+                }
             }
             // If mouse button that was pressed is right
             else if (mouseButton === RIGHT) {
@@ -189,77 +370,18 @@ function gridClickCheck() {
     }
 }
 
+/**
+ * Calculates grid size
+ */
 function calculateGridSize() {
+    // Grid width is equal to canvas width divided by amount of columns / 2
     grid.squareW = width / grid.columns / 2;
     grid.squareH = height / grid.rows / 2;
 }
 
-function drawPlayButton() {
-    // width & height is calculated like this because I want the button to be truly centered, and the image is 192 x 72
-    image(buttonImage, width / 2 - playButton.width / 2, height / 1.2 - playButton.height / 2, playButton.width, playButton.height);
-    fill(playButton.fill.r, playButton.fill.g, playButton.fill.b);
-    textSize(12);
-    text("PLAY", width / 2, height / 1.2);
-}
-
-function drawPressedPlayButton() {
-    // width & height is calculated like this because I want the button to be truly centered, and the image is 192 x 72
-    image(buttonPressedImage, width / 2 - playButton.width / 2, height / 1.2 - playButton.height / 2, playButton.width, playButton.height);
-    fill(playButton.fill.r, playButton.fill.g, playButton.fill.b);
-    textSize(12);
-    text("PLAY", width / 2, height / 1.2);
-}
-
-function titleScreenText() {
-    textSize(48);
-    fill(255, 255, 255);
-    text("|          |", width / 2, height / 6);
-    text("|GRID MATCH|", width / 2, height / 4);
-    text("|__________|", width / 2, height / 3);
-}
-
-function titleExplanationText() {
-    textSize(18);
-    fill(255, 255, 255);
-    text("The game will quickly show you a pattern,\n match the pattern as close as possible \n before the timer runs out!\n\n Meet the required score to continue. \n\n  Left Click: Draw \n\n Right Click: Erase", width / 2, height / 2.7 + height / 5);
-}
-
-function timerDisplay() {
-    textSize(56);
-    let textColor = map(timer, 0, 10, 255, 0);
-    fill(textColor, 0, 0);
-
-    if (timer > 10) {
-        shakeEffect = 0;
-    }
-    else if (timer > 5) {
-        shakeEffect = random(-2, 2);
-    }
-    else {
-        shakeEffect = random(-3, 3);
-    }
-    text(timer, width / 2 - shakeEffect, height / 5);
-}
-
-function scoreDisplay() {
-    textSize(34);
-    fill(255, 255, 255);
-    text(" Score:\n" + score, width / 4, height / 8);
-}
-
-function requirmentDisplay() {
-    textSize(34);
-    fill(255, 255, 255);
-    text("Need:\n" + scoreRequired + " ", width / 2 + width / 4, height / 8);
-}
-
-function leaderboardText() {
-    textSize(32);
-    fill(255, 255, 255);
-    text("LEADERBOARD\n___________", width / 2, height / 8);
-    text("1:\n2:\n3:\n4:\n5:\n6:\n7:\n8:\n9:\n10: ", width / 3, height / 2.2);
-}
-
+/**
+ * Controls the input and function calls for the play button
+ */
 function playButtonInput() {
     // If the mouse is between these values then
     if ((mouseX > width / 2 - playButton.width / 2) &&
@@ -273,9 +395,13 @@ function playButtonInput() {
         playButton.fill.b = 255;
         //Checks if the button is left clicked
         if (mouseIsPressed) {
+            gridReset();
             scoreReset();
             timerReset();
+            stateLevel = "one";
+            nextStage();
             state = "game";
+            warmUpSounds();
         }
     }
     else {
@@ -285,59 +411,65 @@ function playButtonInput() {
     }
 }
 
+/**
+ * Ticks the timer down
+ */
 function timerUpdate() {
     timer--;
 }
 
-function nameField() {
-    setTimeout(() => {
-        let nameAsk = prompt("Please enter your name:");
-    }, 1000); // Delay of 2000 milliseconds (2 seconds)
-}
-
-function triggerOnce() {
-    if (inputDrawn === true) {
-        nameField();
-        inputDrawn = false;
-    }
-}
-
+/**
+ * Figures out everything regarding what the next stage / level should be after the timer reaches 0
+ */
 function nextStage() {
     if (timer <= 0) {
         // If the state of the level is level one display
         if (stateLevel === "one") {
-            console.log("Score Required: " + scoreRequired);
+            // If gridCompare is not nothing
             if (gridCompare != null) {
                 cellCompare();
+                // If score is less than the required score
                 if (score < scoreRequired) {
-                    console.log("You Lost!!!")
-                    inputDrawn = true;
+                    gameOver.setVolume(0.25);
+                    gameOver.play();
                     state = "end";
                 }
                 else {
+                    // Increase score required
                     scoreRequired = scoreRequired + 5;
+                    // If the timer is more than 4
                     if (timerOne > 4) {
                         timerOne = timerOne - 2;
                     }
                     wins++;
-                    console.log("Wins: " + wins);
+                    // If amount of wins is equal to (asked amount)
                     if (wins === 3) {
                         grid.columns = 8;
                         grid.rows = 8;
+                        greatJob.setVolume(0.25);
+                        greatJob.play();
                     }
                     else if (wins === 6) {
                         grid.columns = 10;
                         grid.rows = 10;
+                        greatJob.setVolume(0.25);
+                        greatJob.play();
                     }
                     else if (wins === 9) {
                         grid.columns = 12;
                         grid.rows = 12;
+                        greatJob.setVolume(0.25);
+                        greatJob.play();
+                    }
+                    else if (wins === 12) {
+                        grid.columns = 14;
+                        grid.rows = 14;
+                        greatJob.setVolume(0.25);
+                        greatJob.play();
                     }
                     calculateGridSize()
-                    console.log("New Score Required: " + scoreRequired);
                 }
             }
-            console.log(score);
             oldScore = structuredClone(score);
             // Set the timer to 10
             timer = 5;
@@ -353,7 +485,6 @@ function nextStage() {
         // If the state of the level is level one draw
         else if (stateLevel === "onedraw") {
             gridReset();
-
             editState = true;
             timer = timerOne;
             stateLevel = "one";
@@ -361,11 +492,18 @@ function nextStage() {
     }
 }
 
+/**
+ * Prepares a level
+ */
 function levelOne() {
     gridReset();
+    // For whatever amount of cells selected to be true
     for (let k = 0; k < selectedEasy; k++) {
+        // Decides whatever the random whole number x coordinate will be picked for one of the cells that will turn green
         let randomColumn = Math.floor(random(0, grid.columns - 1));
+        // Decides whatever the random whole number y coordinate will be picked for one of the cells that will turn green
         let randomRow = Math.floor(random(0, grid.rows - 1));
+        // Turns selected cell true (green)
         gridArray[randomColumn][randomRow] = true;
     }
     // GridCompare is equal to gridArrays rows
@@ -373,49 +511,85 @@ function levelOne() {
     gridCompare = gridArray.map(row => row.slice());
 }
 
+/**
+ * Resets the grid
+ */
 function gridReset() {
-    // Let i equal 0, for every time i equals less than 8, add 1 to i
+    // Let i equal 0, for every time i equals less than columns, add 1 to i
     for (let i = 0; i < grid.columns; i++) {
-        // Basically creates 8 arrays (8 because of the amount of columns)
+        // Basically creates "columns" amount of arrays
         gridArray[i] = [];
+        // Let i equal 0, for every time i equals less than rows, add 1 to i
         for (let j = 0; j < grid.rows; j++) {
-            // Creates 8 variables (rows) inside each of the 8 arrays (columns) and then sets them all to false
-            // This sucked, screw 2d arrays, thank god for youtube explanations on this crap.
+            // Create "rows" variables inside each of thea arrays (columns) and then set them all to false
             gridArray[i][j] = false;
         }
     }
 }
 
+/**
+ * Resets score
+ */
 function scoreReset() {
     score = 0;
     oldScore = 0;
 }
 
+/**
+ * Resets timer
+ */
 function timerReset() {
     timer = 0;
 }
 
+/**
+ * Compares cells between gridArray and gridCompare to figure out how much score to give
+ */
 function cellCompare() {
+    // Let i equal 0, for every time i equals less than columns, add 1 to i
     for (let i = 0; i < grid.columns; i++) {
+        // Let i equal 0, for every time i equals less than rows, add 1 to i
         for (let j = 0; j < grid.rows; j++) {
+            // Checks if the cells match
             if (gridArray[i][j] === true && gridCompare[i][j] === true) {
-                console.log("true");
                 score++;
             }
             else if (gridArray[i][j] === true && gridCompare[i][j] !== true) {
-                console.log("false");
                 score = score - 2;
             }
         }
     }
 }
 
+/**
+ * Checks whether someone is editing their score value and triggers an alarm, breaking their game
+ */
 function cheatCheck() {
-    if (score - oldScore > 15) {
+    if (score - oldScore > 20) {
         score = 0;
+        backgroundColor.fill.r = 255;
+        backgroundColor.fill.g = 0;
+        backgroundColor.fill.b = 0;
+        cheater.setVolume(0.50);
+        cheater.play();
+        alarm.loop();
+        grid.columns = 128;
+        grid.rows = 128;
+        gridReset();
+        calculateGridSize();
+        console.log("CHEATER ALERT");
+        console.log("CHEATER ALERT");
+        console.log("CHEATER ALERT");
     }
 }
 
+/** ----------------------------------------------------------------------------------------------------------------------------- */
+/** ----------------------------------------------------------------------------------------------------------------------------- */
+/** ----------------------------------------------------------------------------------------------------------------------------- */
+
+/**
+ * The metaphorical backbone of changing states
+ */
 function stateChange() {
     //Checks what state the game is supposed to be in and changes it
     if (state === "titlescreen") {
@@ -429,7 +603,9 @@ function stateChange() {
     }
 }
 
-//Displays all title screen related functions
+/**
+ * Displays all title screen related functions
+ */
 function titleScreen() {
     titleScreenText();
     drawPlayButton();
@@ -437,20 +613,25 @@ function titleScreen() {
     titleExplanationText();
 }
 
+/**
+ * Displays all game related functions
+ */
 function game() {
     drawGrid();
     gridClickCheck();
-    timerDisplay();
-    scoreDisplay();
-    requirmentDisplay();
+    drawScore();
+    drawTimer();
+    drawRequirement();
     nextStage();
     cheatCheck();
 }
 
+/**
+ * Displays all end screen related functions
+ */
 function end() {
     drawPlayButton();
     playButtonInput();
-    leaderboardText();
+    gameOverText()
     cheatCheck();
-    triggerOnce()
 }
