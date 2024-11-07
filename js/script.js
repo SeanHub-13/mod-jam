@@ -59,6 +59,7 @@ let selectedEasy = null;
 let stateLevel = "one";
 
 let score = 0;
+let oldScore = 0;
 
 let scoreRequired = 5;
 
@@ -140,18 +141,18 @@ function gridClickCheck() {
 
 function drawPlayButton() {
     // width & height is calculated like this because I want the button to be truly centered, and the image is 192 x 72
-    image(buttonImage, width / 2 - playButton.width / 2, height / 2 - playButton.height / 2, playButton.width, playButton.height);
+    image(buttonImage, width / 2 - playButton.width / 2, height / 1.2 - playButton.height / 2, playButton.width, playButton.height);
     fill(playButton.fill.r, playButton.fill.g, playButton.fill.b);
     textSize(12);
-    text("PLAY", width / 2, height / 2);
+    text("PLAY", width / 2, height / 1.2);
 }
 
 function drawPressedPlayButton() {
     // width & height is calculated like this because I want the button to be truly centered, and the image is 192 x 72
-    image(buttonPressedImage, width / 2 - playButton.width / 2, height / 2 - playButton.height / 2, playButton.width, playButton.height);
+    image(buttonPressedImage, width / 2 - playButton.width / 2, height / 1.2 - playButton.height / 2, playButton.width, playButton.height);
     fill(playButton.fill.r, playButton.fill.g, playButton.fill.b);
     textSize(12);
-    text("PLAY", width / 2, height / 2);
+    text("PLAY", width / 2, height / 1.2);
 }
 
 function titleScreenText() {
@@ -165,7 +166,7 @@ function titleScreenText() {
 function titleExplanationText() {
     textSize(18);
     fill(255, 255, 255);
-    text("The game will quickly show you a pattern,\n match the pattern as close as possible \n before the timer runs out!\n\n Meet the required score to continue. \n\n  Left Click: Draw \n\n Right Click: Erase", width / 2, height / 2 + height / 5);
+    text("The game will quickly show you a pattern,\n match the pattern as close as possible \n before the timer runs out!\n\n Meet the required score to continue. \n\n  Left Click: Draw \n\n Right Click: Erase", width / 2, height / 2.7 + height / 5);
 }
 
 function timerDisplay() {
@@ -188,12 +189,19 @@ function requirmentDisplay() {
     text("Need:\n" + scoreRequired + " ", width / 2 + width / 4, height / 8);
 }
 
+function leaderboardText() {
+    textSize(32);
+    fill(255, 255, 255);
+    text("LEADERBOARD\n___________", width / 2, height / 8);
+    text("1:\n2:\n3:\n4:\n5:\n6:\n7:\n8:\n9:\n10:", width / 3, height / 2.2);
+}
+
 function playButtonInput() {
     // If the mouse is between these values then
     if ((mouseX > width / 2 - playButton.width / 2) &&
         (mouseX < width / 2 + playButton.width / 2) &&
-        (mouseY > height / 2 - playButton.height / 2) &&
-        (mouseY < height / 2 + playButton.height / 2)) {
+        (mouseY > height / 1.2 - playButton.height / 2) &&
+        (mouseY < height / 1.2 + playButton.height / 2)) {
         //If mouse hovers over the button, draw the pressed version
         drawPressedPlayButton();
         playButton.fill.r = 255;
@@ -201,8 +209,8 @@ function playButtonInput() {
         playButton.fill.b = 255;
         //Checks if the button is left clicked
         if (mouseIsPressed) {
-            //Resets score
-            //score = 0;
+            scoreReset();
+            timerReset();
             state = "game";
         }
     }
@@ -226,6 +234,7 @@ function nextStage() {
                 cellCompare();
                 if (score < scoreRequired) {
                     console.log("You Lost!!!")
+                    state = "end";
                 }
                 else {
                     scoreRequired = scoreRequired + 5;
@@ -233,6 +242,7 @@ function nextStage() {
                 }
             }
             console.log(score);
+            oldScore = structuredClone(score);
             // Set the timer to 10
             timer = 5;
             // Set the editing boolean to false
@@ -280,6 +290,15 @@ function gridReset() {
     }
 }
 
+function scoreReset() {
+    score = 0;
+    oldScore = 0;
+}
+
+function timerReset() {
+    timer = 0;
+}
+
 function cellCompare() {
     for (let i = 0; i < grid.columns; i++) {
         for (let j = 0; j < grid.rows; j++) {
@@ -295,6 +314,12 @@ function cellCompare() {
     }
 }
 
+function cheatCheck() {
+    if (score - oldScore > 15) {
+        score = 0;
+    }
+}
+
 function stateChange() {
     //Checks what state the game is supposed to be in and changes it
     if (state === "titlescreen") {
@@ -304,14 +329,13 @@ function stateChange() {
         game();
     }
     else if (state === "end") {
-        //end();
+        end();
     }
 }
 
 //Displays all title screen related functions
 function titleScreen() {
     titleScreenText();
-    //titleScreenText2();
     drawPlayButton();
     playButtonInput();
     titleExplanationText();
@@ -324,4 +348,12 @@ function game() {
     scoreDisplay();
     requirmentDisplay();
     nextStage();
+    cheatCheck();
+}
+
+function end() {
+    drawPlayButton();
+    playButtonInput();
+    leaderboardText();
+    cheatCheck();
 }
