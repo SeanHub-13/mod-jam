@@ -2,7 +2,7 @@
 
 Sean Verba
 
-[View this game online](URL_FOR_THE_RUNNING_PROJECT)
+[View this game online](https://seanhub-13.github.io/mod-jam/)
 
 ## Description
 
